@@ -38,6 +38,7 @@
 	var/list/categories = list(
 		"Alcohols",
 		"Food",
+		"Games",
 		"Substances",
 		"Gems",
 		"Luxury",
@@ -79,6 +80,7 @@
 		"Adventuring Supplies",
 		"Alcohols",
 		"Food",
+		"Games",
 		"Substances",
 		"Gems",
 		"Instruments",

@@ -14,6 +14,11 @@
 	no_name_quantity = TRUE
 	contains = list(/obj/item/storage/pill_bottle/dice = 1)
 
+/datum/supply_pack/rogue/games/bakers_dozen
+	name = "Baker's Dozen Dice"
+	cost = 20
+	contains = list(/obj/item/storage/pill_bottle/dice/bakers_dozen)
+
 /datum/supply_pack/rogue/games/farkle
 	name = "Farkle Game Dice"
 	cost = 20
