@@ -55,6 +55,10 @@ GLOBAL_LIST_EMPTY(loadout_items)
 	name = "Dice War Container"
 	path = /obj/item/storage/pill_bottle/dice/dice_war
 
+/datum/loadout_item/liars_dice
+	name = "Liar's Dice Container"
+	path = /obj/item/storage/pill_bottle/dice/liars_dice
+
 /datum/loadout_item/tarot_deck
 	name = "Tarot Deck"
 	path = /obj/item/toy/cards/deck/tarot
