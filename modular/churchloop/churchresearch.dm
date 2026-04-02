@@ -971,7 +971,9 @@ var/global/list/PATRON_ARTIFACTS = list(
 	html += "Each quest can have <u>Easy / Medium / Hard</u> variants, or just one special task.<br>"
 	html += "When you click <b>Get special item</b> on one row, you lock that quest to that difficulty and receive a quest item.<br>"
 	html += "Other rows for that quest lock until reroll.<br>"
-	html += "Use the item under listed conditions to gain Favor. The item self-destructs in ~3 minutes."
+	html += "Quest items may be handed to other players.<br>"
+	html += "Anyone may use the quest item, but the Favor reward always goes to the item's owner.<br>"
+	html += "Use the item under the listed conditions to complete the task."
 	html += "</div></center><hr>"
 
 	var/quest_count = islist(H.quest_ui_entries) ? H.quest_ui_entries.len : 0

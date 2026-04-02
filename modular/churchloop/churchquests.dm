@@ -496,36 +496,16 @@ var/global/list/Q_WITNESS_EFFECTS = list(
 	if(!amount) return
 	if(!length(owner_ckey)) return
 
-	var/half_bonus = round(amount * 0.5)
-
 	for(var/mob/living/carbon/human/HH in world)
 		if(!HH.client) continue
-		if(!HAS_TRAIT(HH, TRAIT_CLERGYRADICAL)) continue
+		if(HH.client.ckey != owner_ckey) continue
 
-		if(HH.client.ckey == owner_ckey)
-			HH.church_favor += amount
-			to_chat(HH, span_notice("+[amount] Favor for completing a miracle quest."))
-		else
-			HH.church_favor += half_bonus
-			to_chat(HH, span_notice("+[half_bonus] shared Favor for a completed miracle quest."))
+		HH.church_favor += amount
+		to_chat(HH, span_notice("+[amount] Favor for completing a miracle quest."))
+		return
 
 /obj/item/quest_token/proc/_ensure_attacker(user)
 	if(!user || !ismob(user)) return FALSE
-	var/mob/M = user
-	var/u_ckey = ""
-	if(M.client)
-		u_ckey = M.client.ckey
-	else if(istext(M.key))
-		u_ckey = ckey(M.key)
-
-	if(u_ckey != owner_ckey)
-		to_chat(user, span_warning("It does not heed your hand. (Owner: [owner_name].)"))
-		return FALSE
-
-	if(!HAS_TRAIT(M, TRAIT_CLERGYRADICAL))
-		to_chat(user, span_warning("Only kindreds may invoke this."))
-		return FALSE
-
 	return TRUE
 
 /obj/item/quest_token/proc/_ensure_target_player(H, user)
