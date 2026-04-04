@@ -528,22 +528,6 @@ var/global/list/Q_WITNESS_EFFECTS = list(
 
 	return TRUE
 
-/obj/item/quest_token/proc/_ensure_target_player(H, user)
-	if(!istype(H, /mob/living/carbon/human))
-		to_chat(user, span_warning("Target must be a person."))
-		return FALSE
-
-	var/mob/living/carbon/human/HH = H
-	if(!HH.client)
-		to_chat(user, span_warning("Target must be a player."))
-		return FALSE
-
-	if(_has_quest_target_mark(HH))
-		to_chat(user, span_warning("This target is already marked by a previous quest."))
-		return FALSE
-
-	return TRUE
-
 /obj/item/quest_token/proc/_check_distance(mob/living/user, mob/living/target)
 	if(!user || !target) return FALSE
 	if(get_dist(user, target) > 1)
