@@ -25,38 +25,20 @@
 	job_subclasses = list(
 		/datum/advclass/acolyte
 	)
-
-/datum/job/roguetown/monk/proc/_grant_all_patron_miracles_direct(mob/living/carbon/human/H)
-	if(!H || !H.mind || !H.patron)
-		return
-
-	if(length(H.patron.miracles))
-		for(var/spell_type in H.patron.miracles)
-			if(!ispath(spell_type, /obj/effect/proc_holder/spell))
-				continue
-			if(H.mind.has_spell(spell_type))
-				continue
-			var/obj/effect/proc_holder/spell/newspell = new spell_type
-			if(newspell)
-				H.mind.AddSpell(newspell, H)
-
-	if(length(H.patron.traits_tier))
-		for(var/trait in H.patron.traits_tier)
-			ADD_TRAIT(H, trait, TRAIT_MIRACLE)
-
+	
 /datum/job/roguetown/monk/proc/grant_old_path(mob/living/carbon/human/H)
 	if(!H || !H.mind || !H.patron)
 		return
 
-	if(H.mind)
-		if(!H.mind.has_spell(/obj/effect/proc_holder/spell/invoked/projectile/divineblast))
-			H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/projectile/divineblast, H)
+	if(!H.mind.has_spell(/obj/effect/proc_holder/spell/invoked/projectile/divineblast))
+		H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/projectile/divineblast, H)
 
 	if(!H.devotion)
 		var/datum/devotion/C = new /datum/devotion(H, H.patron)
-		C.grant_miracles(H, cleric_tier = CLERIC_T4, passive_gain = CLERIC_REGEN_MAJOR, start_maxed = TRUE) //Starts off maxed out.
+		C.grant_miracles(H, cleric_tier = CLERIC_T4, passive_gain = CLERIC_REGEN_MAJOR, start_maxed = TRUE)
 
-	_grant_all_patron_miracles_direct(H)
+	if(H.devotion)
+		H.devotion._grant_all_patron_miracles_direct(H)
 
 	to_chat(H, span_notice("I remain on the old path of devotion."))
 
@@ -67,8 +49,12 @@
 	ADD_TRAIT(H, TRAIT_CLERGYRADICAL, "job")
 	H.church_favor += 2000
 
-	var/datum/devotion/C = new /datum/devotion(H, H.patron)
-	C.grant_miracles(H, cleric_tier = CLERIC_T4, passive_gain = CLERIC_REGEN_MAJOR, start_maxed = TRUE)
+	if(!H.devotion)
+		var/datum/devotion/C = new /datum/devotion(H, H.patron)
+		C.grant_miracles(H, cleric_tier = CLERIC_T4, passive_gain = CLERIC_REGEN_MAJOR, start_maxed = TRUE)
+
+	if(H.devotion)
+		H.devotion._grant_all_patron_miracles_direct(H)
 
 	var/miracle_menu_path = text2path("/obj/effect/proc_holder/spell/self/learnmiracle")
 	if(miracle_menu_path)
@@ -77,9 +63,8 @@
 			if(S)
 				H.mind.AddSpell(S, H)
 
-	if(H.mind)
-		if(!H.mind.has_spell(/obj/effect/proc_holder/spell/invoked/projectile/divineblast))
-			H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/projectile/divineblast, H)			
+	if(!H.mind.has_spell(/obj/effect/proc_holder/spell/invoked/projectile/divineblast))
+		H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/projectile/divineblast, H)
 
 	to_chat(H, span_notice("I embrace the radical path."))
 
@@ -90,9 +75,9 @@
 	var/choice = alert(H, "Choose your path.", "Acolyte Doctrine", "Loyalist", "Radical")
 
 	if(choice == "Radical")
-		grant_radical_path(H)
+		src.grant_radical_path(H)
 	else
-		grant_old_path(H)
+		src.grant_old_path(H)
 
 /datum/job/roguetown/monk/after_spawn(mob/living/L, mob/M, latejoin = TRUE)
 	..()

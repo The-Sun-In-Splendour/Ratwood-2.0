@@ -117,6 +117,25 @@
 		last_level = level
 	return TRUE
 
+/datum/devotion/proc/_grant_all_patron_miracles_direct(mob/living/carbon/human/H)
+	if(!H || !H.mind || !H.patron)
+		return
+
+	if(length(H.patron.miracles))
+		for(var/spell_type in H.patron.miracles)
+			if(!ispath(spell_type, /obj/effect/proc_holder/spell))
+				continue
+			if(H.mind.has_spell(spell_type))
+				continue
+
+			var/obj/effect/proc_holder/spell/newspell = new spell_type
+			if(newspell)
+				H.mind.AddSpell(newspell, H)
+
+	if(length(H.patron.traits_tier))
+		for(var/trait in H.patron.traits_tier)
+			ADD_TRAIT(H, trait, TRAIT_MIRACLE)
+
 /datum/devotion/proc/_is_clergy_radical(mob/living/carbon/human/H) //yes i know
 	if(!H)
 		return FALSE

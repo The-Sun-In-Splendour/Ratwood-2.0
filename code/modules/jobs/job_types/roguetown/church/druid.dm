@@ -58,7 +58,7 @@
 		/datum/skill/craft/carpentry = SKILL_LEVEL_NOVICE,
 		/datum/skill/misc/athletics = SKILL_LEVEL_APPRENTICE,
 		/datum/skill/misc/climbing = SKILL_LEVEL_JOURNEYMAN,
-		/datum/skill/magic/druidic = SKILL_LEVEL_JOURNEYMAN, //Shapeshifting.
+		/datum/skill/magic/druidic = SKILL_LEVEL_EXPERT, //Shapeshifting.
 		/datum/skill/misc/tracking = SKILL_LEVEL_EXPERT, //Druids know the forest and when it has been disturbed
 		/datum/skill/misc/swimming = SKILL_LEVEL_APPRENTICE,
 		/datum/skill/combat/whipsflails = SKILL_LEVEL_NOVICE,
@@ -88,9 +88,58 @@
 		H.adjust_skillrank_up_to(/datum/skill/magic/holy, 5, TRUE)
 		H.adjust_skillrank_up_to(/datum/skill/magic/druidic, 5, TRUE)
 	H.ambushable = FALSE
-	var/datum/devotion/C = new /datum/devotion(H, H.patron)
-	C.grant_miracles(H, cleric_tier = CLERIC_T4, passive_gain = CLERIC_REGEN_MAJOR, start_maxed = TRUE)	//Starts off maxed out.
 
 /datum/outfit/job/roguetown/druid/basic/choose_loadout(mob/living/carbon/human/H)
 	. = ..()
 	H.put_in_hands(new /obj/item/rogueweapon/woodstaff(H)) //To encourage them to wander the forests and to help defend themselves
+
+/datum/job/roguetown/druid/after_spawn(mob/living/L, mob/M, latejoin = TRUE)
+	..()
+	if(ishuman(L))
+		var/mob/living/carbon/human/H = L
+		H.advsetup = 1
+		H.invisibility = INVISIBILITY_MAXIMUM
+		H.become_blind("advsetup")
+
+		spawn(50)
+			if(H && H.client)
+				_delayed_path_choice(H)
+
+/datum/job/roguetown/druid/proc/grant_old_path(mob/living/carbon/human/H)
+	if(!H || !H.mind || !H.patron)
+		return
+	if(!H.devotion)
+		var/datum/devotion/C = new /datum/devotion(H, H.patron)
+		C.grant_miracles(H, cleric_tier = CLERIC_T4, passive_gain = CLERIC_REGEN_MAJOR, start_maxed = TRUE)
+	if(H.devotion)
+		H.devotion._grant_all_patron_miracles_direct(H)
+	to_chat(H, span_notice("I remain on the old path of devotion."))
+
+/datum/job/roguetown/druid/proc/grant_radical_path(mob/living/carbon/human/H)
+	if(!H || !H.mind || !H.patron)
+		return
+	ADD_TRAIT(H, TRAIT_CLERGYRADICAL, "job")
+	H.church_favor += 2000
+	if(!H.devotion)
+		var/datum/devotion/C = new /datum/devotion(H, H.patron)
+		C.grant_miracles(H, cleric_tier = CLERIC_T4, passive_gain = CLERIC_REGEN_MAJOR, start_maxed = TRUE)
+	if(H.devotion)
+		H.devotion._grant_all_patron_miracles_direct(H)
+	var/miracle_menu_path = text2path("/obj/effect/proc_holder/spell/self/learnmiracle")
+	if(miracle_menu_path)
+		if(!H.mind.has_spell(miracle_menu_path))
+			var/obj/effect/proc_holder/spell/S = new miracle_menu_path
+			if(S)
+				H.mind.AddSpell(S, H)
+	to_chat(H, span_notice("I embrace the radical path."))
+
+/datum/job/roguetown/druid/proc/_delayed_path_choice(mob/living/carbon/human/H)
+	if(!H || !H.client || !H.mind)
+		return
+
+	var/choice = alert(H, "Choose your path.", "Druidic Doctrine", "Loyalist", "Radical")
+
+	if(choice == "Radical")
+		grant_radical_path(H)
+	else
+		grant_old_path(H)
