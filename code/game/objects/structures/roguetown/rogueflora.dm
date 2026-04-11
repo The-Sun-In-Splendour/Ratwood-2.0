@@ -120,7 +120,8 @@
 		var/turf/adj = get_step(T, D)
 		if(!isclosedturf(adj) && !locate(/obj/structure/glowshroom) in adj)
 			new /obj/structure/glowshroom(adj)
-	new /obj/structure/flora/newtree(T)
+	// Evil trees cleansed by Dendor's blessing become sanctified, not merely regrown.
+	new /obj/structure/flora/roguetree/wise/sanctified(T)
 	qdel(src)
 	return TRUE
 

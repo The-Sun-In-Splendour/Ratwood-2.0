@@ -140,9 +140,10 @@
 		revert_cast()
 		return FALSE
 
+	// 1x3 horizontal line: front, left of user, right of user.
 	var/turf/target_turf = get_step(user, user.dir)
-	var/turf/target_turf_two = get_step(target_turf, turn(user.dir, 90))
-	var/turf/target_turf_three = get_step(target_turf, turn(user.dir, -90))
+	var/turf/target_turf_two = get_step(user, turn(user.dir, 90))
+	var/turf/target_turf_three = get_step(user, turn(user.dir, -90))
 	for(var/turf/spawn_turf in list(target_turf, target_turf_two, target_turf_three))
 		if(!isclosedturf(spawn_turf) && !locate(/obj/structure/glowshroom) in spawn_turf)
 			new /obj/structure/glowshroom(spawn_turf)
@@ -310,3 +311,113 @@
 	)
 	SEND_SIGNAL(H, COMSIG_TREE_TRANSFORMED)
 	return TRUE
+
+//==============================================================================
+// Soulbind & dryad control spells (granted by Cat 7 soulbind ritual)
+//==============================================================================
+
+/// Summon (or unsummon) a lesser dryad bound to this player.
+/// First cast: spawns the lesser dryad adjacent to the caster and tags it.
+/// Second cast (if already summoned): qdels the dryad, returning it to the grove.
+/obj/effect/proc_holder/spell/targeted/summon_lesser_dryad
+	name = "Summon Lesser Dryad"
+	desc = "Call forth a lesser dryad from the grove to serve as your guardian. Cast again to send it back."
+	overlay_state = "blesscrop"
+	action_icon_state = "blessing"
+	action_icon = 'icons/mob/actions/genericmiracles.dmi'
+	releasedrain = 60
+	recharge_time = 60 SECONDS
+	chargetime = 1 SECONDS
+	max_targets = 0
+	cast_without_targets = TRUE
+	associated_skill = /datum/skill/magic/holy
+	invocations = list("Treefather, lend me your guardian.")
+	invocation_type = "whisper"
+	/// Reference to the currently summoned lesser dryad.
+	var/mob/living/simple_animal/hostile/retaliate/rogue/fae/dryad/lesser/conjured_dryad = null
+
+/obj/effect/proc_holder/spell/targeted/summon_lesser_dryad/cast(list/targets, mob/user = usr)
+	. = ..()
+	if(!istype(user, /mob/living/carbon/human))
+		return FALSE
+	var/mob/living/carbon/human/H = user
+
+	// If already summoned, unsummon
+	if(conjured_dryad && !QDELETED(conjured_dryad))
+		conjured_dryad.visible_message(span_boldwarning("[conjured_dryad] dissolves back into the grove."))
+		qdel(conjured_dryad)
+		conjured_dryad = null
+		to_chat(H, span_notice("My dryad returns to the grove."))
+		return TRUE
+
+	// Summon the lesser dryad
+	var/turf/spawn_turf = null
+	for(var/D in GLOB.alldirs)
+		var/turf/adj = get_step(get_turf(H), D)
+		if(adj && !isclosedturf(adj))
+			spawn_turf = adj
+			break
+	if(!spawn_turf)
+		to_chat(H, span_warning("There is no room to summon the dryad here."))
+		revert_cast()
+		return FALSE
+
+	var/mob/living/simple_animal/hostile/retaliate/rogue/fae/dryad/lesser/D = new(spawn_turf, H)
+	conjured_dryad = D
+	// Register cleanup if the dryad dies on its own
+	RegisterSignal(D, COMSIG_QDELETING, PROC_REF(on_dryad_deleted))
+	to_chat(H, span_green("A lesser dryad emerges from the roots, answering my call."))
+	D.visible_message(span_notice("[D] takes form beside [H]."))
+	return TRUE
+
+/obj/effect/proc_holder/spell/targeted/summon_lesser_dryad/proc/on_dryad_deleted(datum/source)
+	conjured_dryad = null
+	UnregisterSignal(source, COMSIG_QDELETING)
+
+/// Triggers the lesser dryad's surge: kneestingers + 5×5 vines around it.
+/// The player targets the dryad (or any turf near it) to activate the ability.
+/obj/effect/proc_holder/spell/targeted/lesser_dryad_special
+	name = "Dryad Surge"
+	desc = "Command your lesser dryad to erupt with thorns and vines. The dryad must be within 10 tiles."
+	overlay_state = "blesscrop"
+	action_icon_state = "blessing"
+	action_icon = 'icons/mob/actions/genericmiracles.dmi'
+	releasedrain = 50
+	recharge_time = 25 SECONDS
+	chargetime = 0 SECONDS
+	max_targets = 1
+	cast_without_targets = FALSE
+	associated_skill = /datum/skill/magic/holy
+	invocations = list("Tangle my enemies and sting their feet. Grove, arise!")
+	invocation_type = "shout"
+	range = 10
+	/// Reference back to the conjure spell so we can find the dryad.
+	var/obj/effect/proc_holder/spell/targeted/summon_lesser_dryad/conjure_spell = null
+
+/obj/effect/proc_holder/spell/targeted/lesser_dryad_special/cast(list/targets, mob/user = usr)
+	. = ..()
+	if(!istype(user, /mob/living/carbon/human))
+		return FALSE
+	var/mob/living/simple_animal/hostile/retaliate/rogue/fae/dryad/lesser/D = null
+	// Find a lesser dryad owned by this player within range
+	for(var/mob/living/simple_animal/hostile/retaliate/rogue/fae/dryad/lesser/dryad in view(10, user))
+		if(dryad.conjurer_ckey == user.ckey)
+			D = dryad
+			break
+	if(!D)
+		to_chat(user, span_warning("My dryad is not nearby."))
+		revert_cast()
+		return FALSE
+	if(!D.dryad_surge())
+		to_chat(user, span_warning("My dryad's power has not yet recovered."))
+		revert_cast()
+		return FALSE
+	return TRUE
+
+/// Minion order subtype for controlling the lesser dryad faction.
+/// Inherits all minion_order behavior, but only affects mobs tagged with the caster's faction.
+/obj/effect/proc_holder/spell/invoked/minion_order/lesser_dryad
+	name = "Order Dryad"
+	desc = "Command your lesser dryad to move, follow, or attack. Cast on the dryad to toggle stance, on a turf to send it there, on yourself to have it follow, or on an enemy to have it attack."
+	faction_ordering = FALSE
+

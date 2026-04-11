@@ -49,6 +49,8 @@
 	var/list/rituals_completed = list()
 	/// Per-player soulbind registry: list of ckey strings.
 	var/list/soulbound_players = list()
+	/// Ckey of the player who just completed cat7 offerings and must now bleed to confirm.
+	var/awaiting_soulbind_ckey = null
 
 	// ---- Ritual state -------------------------------------------------------
 	/// Currently active ritual category string, or null if none.
@@ -107,6 +109,9 @@
 /obj/structure/flora/roguetree/wise/sanctified/Destroy()
 	STOP_PROCESSING(SSprocessing, src)
 	if(tree_data)
+		// Notify and debuff any soulbound players before clearing data.
+		if(tree_data.soulbound_players.len)
+			curse_soulbound_players()
 		// Remove slow modifiers before the datum is deleted.
 		for(var/mob/living/M in tree_data.slowed_mobs)
 			if(!QDELETED(M))
@@ -119,6 +124,21 @@
 		qdel(tree_data)
 		tree_data = null
 	return ..()
+
+/// Applies the permanent soulbind-broken debuff to all online soulbound players.
+/// Called from Destroy() before tree_data is cleared.
+/obj/structure/flora/roguetree/wise/sanctified/proc/curse_soulbound_players()
+	for(var/ckey in tree_data.soulbound_players)
+		for(var/mob/living/carbon/human/H in GLOB.alive_mob_list)
+			if(H.ckey != ckey)
+				continue
+			H.apply_status_effect(/datum/status_effect/debuff/soulbind_broken)
+			REMOVE_TRAIT(H, "DENDOR_SOULBOUND", "SOULBIND")
+			for(var/obj/effect/proc_holder/spell/targeted/summon_lesser_dryad/S in H.mind?.spell_list)
+				H.mind.RemoveSpell(S)
+			for(var/obj/effect/proc_holder/spell/invoked/minion_order/lesser_dryad/S in H.mind?.spell_list)
+				H.mind.RemoveSpell(S)
+			break
 
 /obj/structure/flora/roguetree/wise/sanctified/process(dt)
 	bonus_check_elapsed += dt
@@ -605,11 +625,116 @@
 	addtimer(VARSET_CALLBACK(tree_data, manual_heal_cooldown, FALSE), 2 MINUTES)
 
 //==============================================================================
-// Soulbind Stub (Phase 8)
+// Soulbind Broken Status Effect (permanent, applied on tree destruction)
 //==============================================================================
 
+/atom/movable/screen/alert/status_effect/debuff/soulbind_broken
+	name = "Soulbind Broken"
+	desc = "A piece of my soul has been torn away — my body and mind are diminished."
+	icon_state = "debuff"
+
+/datum/status_effect/debuff/soulbind_broken
+	id = "soulbind_broken"
+	alert_type = /atom/movable/screen/alert/status_effect/debuff/soulbind_broken
+	effectedstats = list("strength" = -4, "speed" = -4, "perception" = -4, "intelligence" = -4, "constitution" = -4)
+	duration = -1
+
+/datum/status_effect/debuff/soulbind_broken/on_apply()
+	. = ..()
+	to_chat(owner, span_userdanger("A piece of my soul has been torn away — my sacred bond is shattered. I am incredibly weakened."))
+
+/datum/status_effect/debuff/soulbind_broken/on_remove()
+	. = ..()
+	// Permanent — blocked by living code, but implement for completeness.
+
+//==============================================================================
+// Soulbind (Cat 7)
+//==============================================================================
+
+/// Called when cat7 offerings are complete. Sets the tree into soulbind-ready state.
+/// The player must then attack the tree with harm intent + empty hand + bleeding arm to confirm.
 /obj/structure/flora/roguetree/wise/sanctified/proc/on_soulbind(mob/living/user)
-	to_chat(user, span_warning("Soulbinding has not yet been implemented for this tree."))
+	if(!istype(user, /mob/living/carbon/human))
+		to_chat(user, span_warning("Only a living person may soulbind with this tree."))
+		return
+	var/mob/living/carbon/human/H = user
+	if(H.ckey in tree_data.soulbound_players)
+		to_chat(H, span_warning("I am already soulbound to this tree."))
+		return
+	// Check once-per-player: has this player soulbound to any sanctified tree?
+	if(HAS_TRAIT(H, "DENDOR_SOULBOUND"))
+		to_chat(H, span_userdanger("My soul is already bound to a sanctified tree. I cannot bind twice."))
+		return
+	tree_data.awaiting_soulbind_ckey = H.ckey
+	to_chat(H, span_warning("The ritual is set. To complete the soulbind, I must attack this tree with harm intent, my hand empty and my arm bleeding."))
+
+/// Triggered when a player attacks the tree with harm intent + empty hand + bleeding arm.
+/obj/structure/flora/roguetree/wise/sanctified/proc/attempt_soulbind(mob/living/carbon/human/H)
+	if(!tree_data)
+		return
+	if(tree_data.awaiting_soulbind_ckey != H.ckey)
+		return
+	if(HAS_TRAIT(H, "DENDOR_SOULBOUND"))
+		to_chat(H, span_userdanger("My soul is already bound — I cannot bind again."))
+		return
+	if(H.ckey in tree_data.soulbound_players)
+		to_chat(H, span_warning("I am already soulbound to this tree."))
+		return
+
+	// Check intent
+	if(H.used_intent?.type != INTENT_HARM)
+		to_chat(H, span_warning("I must be on harm intent to complete the soulbind."))
+		return
+	// Check empty active hand
+	if(H.get_active_held_item())
+		to_chat(H, span_warning("My hand must be empty to complete the soulbind."))
+		return
+	// Check arm bleeding
+	var/obj/item/bodypart/r_arm = H.get_bodypart(BODY_ZONE_R_ARM)
+	var/obj/item/bodypart/l_arm = H.get_bodypart(BODY_ZONE_L_ARM)
+	if(!(r_arm?.get_bleed_rate() > 0) && !(l_arm?.get_bleed_rate() > 0))
+		to_chat(H, span_warning("My arm must be bleeding to seal the soulbind in blood."))
+		return
+
+	to_chat(H, span_notice("I press my bleeding palm against the sacred bark, binding my soul to the sanctified tree."))
+	if(!do_after(H, 3 SECONDS, target = src))
+		return
+	if(QDELETED(src) || QDELETED(H))
+		return
+	if(H.ckey in tree_data.soulbound_players || HAS_TRAIT(H, "DENDOR_SOULBOUND"))
+		return
+
+	// Finalize bind
+	var/confirm = alert(H, "You will bind your soul to this sanctified tree. If the tree is destroyed, you will suffer a permanent, irreversible penalty to all your attributes. Proceed?", "Soulbind", "Yes", "No")
+	if(confirm != "Yes" || QDELETED(src) || QDELETED(H))
+		to_chat(H, span_warning("I withdraw from the sacred pact."))
+		return
+
+	// 50 brute to active arm
+	var/active_zone = H.active_hand_index == 1 ? BODY_ZONE_R_ARM : BODY_ZONE_L_ARM
+	var/obj/item/bodypart/active_arm = H.get_bodypart(active_zone)
+	if(active_arm)
+		active_arm.receive_damage(50, 0)
+	else
+		H.adjustBruteLoss(50, 0)
+
+	// Mark as soulbound
+	ADD_TRAIT(H, "DENDOR_SOULBOUND", "SOULBIND")
+	tree_data.soulbound_players |= H.ckey
+	tree_data.awaiting_soulbind_ckey = null
+
+	// Grant soulbind spells
+	H.mind.AddSpell(new /obj/effect/proc_holder/spell/targeted/summon_lesser_dryad)
+	H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/minion_order/lesser_dryad)
+
+	// Register tree destruction signal is no longer needed — cleanup is handled in Destroy().
+
+	visible_message(span_boldwarning("[H.name]'s hand is pressed against the bark — a flash of gold seals the pact!"))
+	playsound(get_turf(src), 'sound/ambience/noises/mystical (4).ogg', 70, TRUE)
+	to_chat(H, span_green("My soul is bound to this sanctified tree. Should it fall, a part of me falls with it."))
+
+/// Called when the tree is destroyed while a player is soulbound to it.
+/// Actual debuffing happens via curse_soulbound_players() in Destroy().
 
 //==============================================================================
 // Examine / Interaction
@@ -641,6 +766,11 @@
 		. += span_info("A healing aura emanates from this tree. Middle-click (drag) onto the tree to channel its healing energies.")
 
 /obj/structure/flora/roguetree/wise/sanctified/attack_hand(mob/user)
+	if(istype(user, /mob/living/carbon/human) && tree_data?.awaiting_soulbind_ckey)
+		var/mob/living/carbon/human/H = user
+		if(H.ckey == tree_data.awaiting_soulbind_ckey)
+			attempt_soulbind(H)
+			return
 	return ..()
 
 /obj/structure/flora/roguetree/wise/sanctified/attackby(obj/item/I, mob/living/user, params)
