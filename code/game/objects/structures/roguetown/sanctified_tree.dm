@@ -13,6 +13,9 @@
 	effectedstats = list("perception" = 2, "speed" = 1)
 	duration = 30 MINUTES
 
+/datum/status_effect/buff/dendor_vigil/dendorite
+	effectedstats = list("perception" = 3, "speed" = 2)
+
 /datum/status_effect/buff/dendor_vigil/on_apply()
 	. = ..()
 	ADD_TRAIT(owner, TRAIT_LONGSTRIDER, "DENDOR_VIGIL")
@@ -32,7 +35,7 @@
 /obj/item/clothing/suit/roguetown/armor/leather/druid/blessed
 	name = "blessed druid armor"
 	desc = "Druid armor hallowed by the Treefather's rite. The bark pulses with faint living light; it feels as though the forest itself watches over whoever wears it."
-	armor = ARMOR_LEATHER_GOOD
+	armor = list("blunt" = 90, "slash" = 70, "stab" = 60, "piercing" = 60, "fire" = 0, "acid" = 0)
 	prevent_crits = list(BCLASS_CUT, BCLASS_STAB, BCLASS_BLUNT, BCLASS_CHOP)
 	max_integrity = ARMOR_INT_CHEST_LIGHT_MASTER
 	color = "#73c47a"
@@ -105,10 +108,12 @@
 	. = ..()
 	tree_data = new /datum/sanctified_tree_data(src)
 	set_light(3, 3, 3, l_color = "#FFD700")
+	add_filter("sanctified_outline", 2, list("type" = "outline", "color" = "#58C86A", "alpha" = 60, "size" = 1))
 	START_PROCESSING(SSprocessing, src)
 	recalculate_integrity_bonus()
 
 /obj/structure/flora/roguetree/wise/sanctified/Destroy()
+	remove_filter("sanctified_outline")
 	STOP_PROCESSING(SSprocessing, src)
 	if(tree_data)
 		// Notify and debuff any soulbound players before clearing data.
@@ -273,28 +278,28 @@
 		if("cat2") return list("manabloom_or_manacrystal" = 10)
 		if("cat3") return list("runed_or_leyline" = 5)
 		if("cat4") return list("enchanted_stone_or_boulder" = 5)
-		if("cat5") return list("flesh_item" = 10, "ash" = 10, "compost" = 10)
+		if("cat5") return list("vital_item" = 10, "ash" = 10, "compost" = 10)
 		if("cat6") return list("zizobane" = 5, "runed_artifact" = 2, "druid_armor" = 1, "volf_head" = 1, "spider_head" = 1, "tree_seed" = 1, "blessed_seed_powder" = 1, "holy_water_container" = 1)
 		if("cat7") return list("lux" = 1, "leechtick" = 1, "bones" = 4)
 	return list()
 
 /obj/structure/flora/roguetree/wise/sanctified/proc/get_offering_desc(key)
 	switch(key)
-		if("food_item") return "Any fresh / rotten fruit, vegetable, or grain."
-		if("manabloom_or_manacrystal") return "Mana bloom OR crystalized mana."
-		if("runed_or_leyline") return "Runed artifact OR leyline shard."
-		if("enchanted_stone_or_boulder") return "Enchanted stone (magic power 5+) OR boulder."
-		if("flesh_item") return "Sinew, viscera, tail bone, bone, or skull."
+		if("food_item") return "Any fresh or rotten produce"
+		if("manabloom_or_manacrystal") return "Mana bloom OR crystalized mana"
+		if("runed_or_leyline") return "Runed artifact OR leyline shard"
+		if("enchanted_stone_or_boulder") return "Enchanted stone (magic power 5+) OR boulder"
+		if("vital_item") return "Sinew, viscera, bonemeal, or skull"
 		if("ash") return "Ash"
 		if("compost") return "Compost"
-		if("zizobane") return "Zizo's bane mushroom."
+		if("zizobane") return "Zizo's bane mushroom"
 		if("runed_artifact") return "Runed artifact"
 		if("druid_armor") return "Druid armor"
 		if("volf_head") return "Volf head"
 		if("spider_head") return "Spider head"
 		if("tree_seed") return "Tree seed"
 		if("blessed_seed_powder") return "Blessed seed powder"
-		if("holy_water_container") return "Stone mortar or bucket with 30+ drams of holy water"
+		if("holy_water_container") return "Stone mortar or bucket with 30+ drams of blessed water"
 		if("lux") return "Lux"
 		if("leechtick") return "Leech tick"
 		if("bones") return "Bones"
@@ -315,6 +320,9 @@
 	if(!tree_data?.active_ritual)
 		return
 	var/obj/item/held = user.get_active_held_item()
+	if(!held)
+		to_chat(user, span_warning("I am not holding anything to offer."))
+		return
 	var/req = get_required_offerings(tree_data.active_ritual)
 	for(var/key in req)
 		var/current = tree_data.ritual_progress[key] || 0
@@ -328,28 +336,61 @@
 				tree_data.cat1_all_berries = FALSE
 		consume_offering(key, held, user)
 		tree_data.ritual_progress[key] = current + 1
-		to_chat(user, span_notice("I offer [get_offering_desc(key)] to the sanctified tree. ([current + 1]/[req[key]])"))
 		playsound(get_turf(src), 'sound/magic/churn.ogg', 40, FALSE)
 		if(check_ritual_complete())
 			complete_ritual(user)
-		else
-			show_ritual_requirements(user, tree_data.active_ritual)
 		return
-	if(held)
-		to_chat(user, span_warning("The tree does not need [held.name] right now."))
-	else
-		to_chat(user, span_warning("I am not holding anything to offer."))
-	show_ritual_requirements(user, tree_data.active_ritual)
+	to_chat(user, span_warning("The tree does not need [held.name] right now."))
+
+/obj/structure/flora/roguetree/wise/sanctified/proc/is_harvest_offering(obj/item/held)
+	if(!istype(held, /obj/item/reagent_containers/food/snacks))
+		return FALSE
+	if(istype(held, /obj/item/reagent_containers/food/snacks/grown/berries))
+		return TRUE
+	var/obj/item/reagent_containers/food/snacks/food = held
+	if(food.foodtype & (FRUIT | VEGETABLES | GRAIN))
+		return TRUE
+	var/static/list/extra_harvest_types = list(
+		/obj/item/reagent_containers/food/snacks/grown/garlick/rogue,
+		/obj/item/reagent_containers/food/snacks/grown/onion/rogue,
+		/obj/item/reagent_containers/food/snacks/grown/vegetable/turnip,
+		/obj/item/reagent_containers/food/snacks/grown/cabbage/rogue,
+		/obj/item/reagent_containers/food/snacks/grown/potato/rogue,
+		/obj/item/reagent_containers/food/snacks/grown/rice,
+		/obj/item/reagent_containers/food/snacks/grown/cucumber,
+		/obj/item/reagent_containers/food/snacks/grown/eggplant,
+		/obj/item/reagent_containers/food/snacks/grown/carrot,
+		/obj/item/reagent_containers/food/snacks/grown/wheat,
+		/obj/item/reagent_containers/food/snacks/grown/oat,
+		/obj/item/reagent_containers/food/snacks/grown/sugarcane,
+		/obj/item/reagent_containers/food/snacks/grown/coffeebeans,
+		/obj/item/reagent_containers/food/snacks/grown/rogue/tealeaves,
+		/obj/item/reagent_containers/food/snacks/grown/rogue/poppy,
+		/obj/item/reagent_containers/food/snacks/grown/nut,
+		/obj/item/reagent_containers/food/snacks/grown/apple,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/pear,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/lemon,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/lime,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/tangerine,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/plum,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/strawberry,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/blackberry,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/raspberry,
+		/obj/item/reagent_containers/food/snacks/grown/fruit/tomato,
+		/obj/item/natural/shellplant/pumpkin,
+		/obj/item/reagent_containers/food/snacks/grown/berries/rogue
+	)
+	for(var/path in extra_harvest_types)
+		if(istype(held, path))
+			return TRUE
+	return FALSE
 
 /obj/structure/flora/roguetree/wise/sanctified/proc/check_offering_match(key, obj/item/held)
 	if(!held)
 		return FALSE
 	switch(key)
 		if("food_item")
-			if(!istype(held, /obj/item/reagent_containers/food/snacks))
-				return FALSE
-			var/obj/item/reagent_containers/food/snacks/food = held
-			return istype(held, /obj/item/reagent_containers/food/snacks/grown/berries) || (food.foodtype & (FRUIT | VEGETABLES | GRAIN))
+			return is_harvest_offering(held)
 		if("manabloom_or_manacrystal")
 			return istype(held, /obj/item/reagent_containers/food/snacks/grown/manabloom) || istype(held, /obj/item/magic/manacrystal)
 		if("runed_or_leyline")
@@ -359,8 +400,8 @@
 				var/obj/item/natural/stone/stone = held
 				return stone.magic_power >= 5
 			return istype(held, /obj/item/natural/rock)
-		if("flesh_item")
-			return istype(held, /obj/item/alch/sinew) || istype(held, /obj/item/alch/viscera) || istype(held, /obj/item/alch/bone) || istype(held, /obj/item/natural/bone) || istype(held, /obj/item/skull)
+		if("vital_item")
+			return istype(held, /obj/item/alch/sinew) || istype(held, /obj/item/alch/viscera) || istype(held, /obj/item/alch/bonemeal) || istype(held, /obj/item/skull)
 		if("ash")
 			return istype(held, /obj/item/ash)
 		if("compost")
@@ -382,11 +423,14 @@
 		if("holy_water_container")
 			if(!(istype(held, /obj/item/reagent_containers/glass/mortar) || istype(held, /obj/item/reagent_containers/glass/bucket)))
 				return FALSE
-			return held.reagents && held.reagents.get_reagent_amount(/datum/reagent/water/holywater) >= 30
+			if(!held.reagents)
+				return FALSE
+			var/holy_total = held.reagents.get_reagent_amount(/datum/reagent/water/holywater) + held.reagents.get_reagent_amount(/datum/reagent/water/blessed)
+			return holy_total >= 30
 		if("lux")
 			return istype(held, /obj/item/reagent_containers/lux)
 		if("leechtick")
-			return istype(held, /obj/item/natural/worms/leech)
+			return istype(held, /obj/item/natural/worms/leech) || istype(held, /obj/item/leechtick) || istype(held, /obj/item/leechtick_bloated)
 		if("bones")
 			return istype(held, /obj/item/natural/bone) || istype(held, /obj/item/alch/bone)
 	return FALSE
@@ -395,7 +439,7 @@
 	switch(key)
 		if("food_item", "manabloom_or_manacrystal", "runed_or_leyline", "enchanted_stone_or_boulder")
 			qdel(held)
-		if("flesh_item", "ash", "compost")
+		if("vital_item", "ash", "compost")
 			qdel(held)
 		if("zizobane", "runed_artifact", "volf_head", "spider_head", "tree_seed", "blessed_seed_powder")
 			qdel(held)
@@ -404,8 +448,13 @@
 			held.forceMove(get_turf(src))
 			tree_data.ritual_armor = held
 		if("holy_water_container")
-			// Drain the holy water but leave the container.
-			held.reagents.remove_reagent(/datum/reagent/water/holywater, 30)
+			// Drain holy/blessed water but leave the container.
+			var/holy_to_drain = min(30, held.reagents.get_reagent_amount(/datum/reagent/water/holywater))
+			if(holy_to_drain > 0)
+				held.reagents.remove_reagent(/datum/reagent/water/holywater, holy_to_drain)
+			var/blessed_to_drain = max(30 - holy_to_drain, 0)
+			if(blessed_to_drain > 0)
+				held.reagents.remove_reagent(/datum/reagent/water/blessed, blessed_to_drain)
 		if("lux", "leechtick", "bones")
 			qdel(held)
 
@@ -504,12 +553,14 @@
 		var/turf/adj = get_step(T, D)
 		if(adj && !isclosedturf(adj) && !locate(/obj/structure/glowshroom) in adj)
 			new /obj/structure/glowshroom(adj)
-	// Buff all nearby living mobs (not just Dendor followers).
+	// Buff nearby conscious Dendor followers.
 	for(var/mob/living/carbon/human/H in range(6, src))
+		if(H.patron?.type != /datum/patron/divine/dendor)
+			continue
 		if(H.stat != CONSCIOUS || H.incapacitated())
 			continue
-		H.apply_status_effect(/datum/status_effect/buff/dendor_vigil)
-	to_chat(user, span_green("Kneestingers erupt in a ring — the Treefather's vigil washes over all who stand near."))
+		H.apply_status_effect(/datum/status_effect/buff/dendor_vigil/dendorite)
+	to_chat(user, span_green("Kneestingers erupt in a ring — the Treefather's vigil strengthens his faithful."))
 
 /// Cat 3 — Fae Weaving: mushroom fae circle seed (repeatable).
 /// Offerings: 5 runed artifacts OR leyline shards. Reward: 1 mushroom_fae seed.

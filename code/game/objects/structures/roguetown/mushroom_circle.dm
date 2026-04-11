@@ -11,7 +11,7 @@
 //
 // Teleportation:
 //   Hold Dendor amulet → click circle → choose destination → 3 sec cast
-//   Drags your pulled target with you if one is grabbed.
+//   You must stand inside the circle, and every living being standing in it travels together.
 //
 // Renaming:
 //   Click with /obj/item/natural/feather (UNIQUE_RENAME flag).
@@ -30,9 +30,8 @@ GLOBAL_LIST_EMPTY(mushroom_circles)
 	opacity = FALSE
 	max_integrity = 5
 	resistance_flags = FLAMMABLE
-	icon = 'icons/obj/hydroponics/seeds.dmi'
-	icon_state = "seed"
-	color = "#FFFFFF"
+	icon = 'icons/roguetown/misc/crops.dmi'
+	icon_state = "fyritius0"
 	layer = OBJ_LAYER
 
 	var/obj/structure/soil/linked_soil
@@ -200,6 +199,9 @@ GLOBAL_LIST_EMPTY(mushroom_circles)
 	return ..()
 
 /obj/structure/mushroom_circle/proc/open_teleport_menu(mob/living/user)
+	if(get_turf(user) != get_turf(src))
+		to_chat(user, span_warning("I must stand within the mushroom circle to traverse the fae paths."))
+		return
 	var/list/choices = list()
 	for(var/obj/structure/mushroom_circle/C in GLOB.mushroom_circles)
 		if(C == src || !C.active)
@@ -227,14 +229,15 @@ GLOBAL_LIST_EMPTY(mushroom_circles)
 		return
 
 	var/turf/dest_turf = get_turf(dest)
-	var/mob/living/pulled = null
-	if(user.pulling && isliving(user.pulling))
-		pulled = user.pulling
+	var/turf/source_turf = get_turf(src)
+	var/list/travelers = list()
+	for(var/mob/living/L in source_turf)
+		if(!QDELETED(L))
+			travelers += L
 
-	playsound(get_turf(src), 'sound/misc/portalactivate.ogg', 50, FALSE)
-	user.forceMove(dest_turf)
+	playsound(source_turf, 'sound/misc/portalopen.ogg', 50, FALSE)
+	for(var/mob/living/L in travelers)
+		L.forceMove(dest_turf)
 	playsound(dest_turf, 'sound/misc/portalopen.ogg', 50, FALSE)
-	if(pulled && !QDELETED(pulled))
-		pulled.forceMove(dest_turf)
 
 	to_chat(user, span_notice("I step into the ring, planting my feet firmly and emerge at [dest.name]."))

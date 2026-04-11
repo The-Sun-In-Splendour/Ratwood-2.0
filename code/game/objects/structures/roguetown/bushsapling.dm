@@ -3,10 +3,8 @@
 #define BUSHSAP_STAGE_BUDDING 2
 #define BUSHSAP_STAGE_MATURE  3
 
-#define BUSHSAP_WATER_MAX    200
 #define BUSHSAP_STAGE_TIME   360  // 6 minutes per water-dependent stage
 #define BUSHSAP_HEDGE_TIME   480  // 8 minutes before becoming a hedge (resets on shear)
-#define BUSHSAP_WATER_DRAIN  0.5  // water units per second (~6.7 min to empty)
 #define BUSHSAP_DEATH_TICKS  60   // negative-progress seconds before withering
 
 //==============================================================================
@@ -22,7 +20,7 @@
 
 /obj/structure/bush_sapling
 	name = "bush sapling"
-	desc = "A small bush sapling, ready for planting. Keep it watered and it will grow into a hardy bush."
+	desc = "A small bush sapling, ready for planting. It draws from the soil while it takes root."
 	anchored = TRUE
 	density = FALSE
 	opacity = FALSE
@@ -34,8 +32,10 @@
 
 	var/stage = BUSHSAP_STAGE_SAPLING
 	var/growth_progress = 0  // seconds toward next stage
-	var/water = BUSHSAP_WATER_MAX
 	var/dead = FALSE
+	var/obj/structure/soil/linked_soil
+	var/soil_water_drain = 1.5 / (1 MINUTES)
+	var/soil_nutrition_drain = 1.0 / (1 MINUTES)
 
 	// Stage-3 loot, mirrors /obj/structure/flora/roguegrass/bush
 	var/bushtype = null
@@ -44,6 +44,7 @@
 
 /obj/structure/bush_sapling/Initialize(mapload)
 	. = ..()
+	linked_soil = locate(/obj/structure/soil) in get_turf(src)
 	START_PROCESSING(SSprocessing, src)
 
 /obj/structure/bush_sapling/Destroy()
@@ -55,8 +56,12 @@
 		return
 
 	if(stage <= BUSHSAP_STAGE_BUDDING)
-		if(water > 0)
-			water = max(0, water - BUSHSAP_WATER_DRAIN * dt)
+		if(!linked_soil || QDELETED(linked_soil))
+			wither_and_die()
+			return
+		if(linked_soil.water > 0 && linked_soil.nutrition > 0)
+			linked_soil.adjust_water(-dt * soil_water_drain)
+			linked_soil.adjust_nutrition(-dt * soil_nutrition_drain)
 			growth_progress += dt
 		else
 			growth_progress -= dt * 2
@@ -80,7 +85,7 @@
 	pixel_x = 0
 	icon = 'icons/roguetown/misc/crops.dmi'
 	icon_state = "apple3"
-	visible_message(span_warning("[src] withers and dies from lack of water."))
+	visible_message(span_warning("[src] withers and dies from poor soil conditions."))
 
 /obj/structure/bush_sapling/proc/advance_stage()
 	growth_progress = 0
@@ -88,12 +93,13 @@
 	switch(stage)
 		if(BUSHSAP_STAGE_BUDDING)
 			icon = 'icons/roguetown/misc/foliage.dmi'
-			icon_state = "bush1"
+			icon_state = "bush2"
 		if(BUSHSAP_STAGE_MATURE)
 			// Remove soil beneath — the bush takes over from here
 			var/turf/T = get_turf(src)
 			for(var/obj/structure/soil/S in T)
 				qdel(S)
+			linked_soil = null
 			// Pick loot type, same weighting as the wild bush
 			if(isnull(bushtype))
 				bushtype = pickweight(list(
@@ -103,7 +109,7 @@
 				))
 			loot_replenish()
 			icon = 'icons/roguetown/misc/foliage.dmi'
-			icon_state = "bush[pick(2, 3, 4)]"
+			icon_state = "bush2"
 		if(4)
 			spawn_hedge()
 
@@ -128,11 +134,26 @@
 		if(BUSHSAP_STAGE_SAPLING)
 			. += span_info("A young bush sprout just taking hold.")
 		if(BUSHSAP_STAGE_BUDDING)
-			. += span_info("Growing steadily — keep it watered.")
+			. += span_info("Growing steadily — it is still rooting in the soil.")
 		if(BUSHSAP_STAGE_MATURE)
-			. += span_notice("A mature bush. Shear it with scissors to keep it manageable, or leave it to grow into a taller hedge.")
+			if(growth_progress >= BUSHSAP_HEDGE_TIME * 0.7)
+				. += span_warning("It is looking overgrown. Shear it soon, or it will become a tall hedge.")
+			else
+				. += span_notice("A mature bush. Shear it with scissors to keep it manageable, or leave it to grow into a taller hedge.")
 	if(stage <= BUSHSAP_STAGE_BUDDING)
-		. += span_info("Water: [round(water / BUSHSAP_WATER_MAX * 100)]%")
+		if(linked_soil && !QDELETED(linked_soil))
+			if(linked_soil.water <= 45)
+				. += span_warning("The soil beneath it is thirsty.")
+			else if(linked_soil.water <= 150)
+				. += span_info("The soil beneath it is moist.")
+			else
+				. += span_info("The soil beneath it is wet.")
+			if(linked_soil.nutrition <= 45)
+				. += span_warning("The soil beneath it is hungry.")
+			else if(linked_soil.nutrition <= 150)
+				. += span_info("The soil beneath it is sated.")
+			else
+				. += span_info("The soil beneath it looks fertile.")
 
 /obj/structure/bush_sapling/attack_hand(mob/user)
 	// Stage-3: pickable like a wild bush
@@ -158,23 +179,11 @@
 	return ..()
 
 /obj/structure/bush_sapling/attackby(obj/item/I, mob/living/user, params)
-	// Watering (stages 1–2)
-	if(istype(I, /obj/item/reagent_containers) && stage <= BUSHSAP_STAGE_BUDDING && !dead)
-		var/obj/item/reagent_containers/RC = I
-		if(water >= BUSHSAP_WATER_MAX)
-			to_chat(user, span_notice("The sapling is already well-watered."))
+	if(stage <= BUSHSAP_STAGE_BUDDING && !dead && linked_soil)
+		if(linked_soil.try_handle_watering(I, user, params))
 			return
-		var/water_amt = RC.reagents.get_reagent_amount(/datum/reagent/water)
-		var/holy_amt  = RC.reagents.get_reagent_amount(/datum/reagent/water/holywater)
-		var/total = water_amt + holy_amt
-		if(total < 1)
-			to_chat(user, span_warning("[RC] doesn't have any water in it."))
+		if(linked_soil.try_handle_fertilizing(I, user, params))
 			return
-		RC.reagents.remove_reagent(/datum/reagent/water, water_amt)
-		RC.reagents.remove_reagent(/datum/reagent/water/holywater, holy_amt)
-		water = min(BUSHSAP_WATER_MAX, water + total * 10)
-		to_chat(user, span_notice("I water [src]."))
-		return
 
 	// Shearing at stage 3 — requires snip intent so the player opts in deliberately
 	if(istype(I, /obj/item/rogueweapon/huntingknife/scissors) && user.used_intent.type == /datum/intent/snip && stage == BUSHSAP_STAGE_MATURE && !dead)

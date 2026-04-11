@@ -21,7 +21,7 @@
 	var/charge_regen_elapsed = 0
 	var/empty_refill_elapsed = 0
 	var/empty_refill_active = FALSE
-	var/active_sound = 'sound/magic/churn.ogg'
+	var/active_sound = null
 
 /obj/effect/proc_holder/spell/targeted/blesscrop/update_icon()
 	if(!action)
@@ -45,7 +45,7 @@
 		if(active_sound)
 			user.playsound_local(user, active_sound, 100, vary = FALSE)
 		active = TRUE
-		add_ranged_ability(user, span_notice("I ready Dendor's blessing and mark a target to receive it."), TRUE)
+		add_ranged_ability(user, null, TRUE)
 	update_icon()
 
 /obj/effect/proc_holder/spell/targeted/blesscrop/deactivate(mob/living/user)
@@ -56,14 +56,15 @@
 /obj/effect/proc_holder/spell/targeted/blesscrop/InterceptClickOn(mob/living/caller, params, atom/target)
 	. = ..()
 	if(.)
-		return FALSE
+		return TRUE
 	if(ismob(target))
 		to_chat(caller, span_warning("Bless Crops must be aimed at a tree, long log, or soil plot."))
-		return FALSE
+		return TRUE
 	if(!can_cast(caller) || !cast_check(FALSE, ranged_ability_user))
-		return FALSE
+		return TRUE
 	if(perform(list(target), TRUE, user = ranged_ability_user))
 		return TRUE
+	return TRUE
 
 /obj/effect/proc_holder/spell/targeted/blesscrop/Initialize(mapload)
 	. = ..()
@@ -163,6 +164,10 @@
 	sync_bless_charges(user)
 	if(!target_turf)
 		target_turf = get_turf(user)
+	var/list/target_long_logs = list()
+	for(var/obj/item/grown/log/tree/log in target_turf)
+		if(log.type == /obj/item/grown/log/tree)
+			target_long_logs += log
 	var/obj/item/alch/blessedseedpowder/blessed_seed_powder = user.get_active_held_item()
 	if(!istype(blessed_seed_powder))
 		blessed_seed_powder = user.get_inactive_held_item()
@@ -178,9 +183,12 @@
 
 	// Targeted long-log blessing: consume blessed seed powder + all holy water in held mortar/bucket,
 	// and bless up to 6 long logs on the targeted tile.
-	if(istype(target_atom, /obj/item/grown/log/tree))
-		if(target_atom.type != /obj/item/grown/log/tree)
+	if(target_long_logs.len || istype(target_atom, /obj/item/grown/log/tree))
+		if(istype(target_atom, /obj/item/grown/log/tree) && target_atom.type != /obj/item/grown/log/tree)
 			to_chat(user, span_warning("Only long logs can be blessed by this rite."))
+			return FALSE
+		if(!target_long_logs.len)
+			to_chat(user, span_warning("There are no large logs at that location to sanctify."))
 			return FALSE
 		if(!blessed_seed_powder)
 			to_chat(user, span_warning("I need blessed seed powder in-hand to sanctify logs."))
@@ -193,9 +201,7 @@
 			to_chat(user, span_warning("My container has no holy water to fuel the blessing."))
 			return FALSE
 		var/blessed_logs = 0
-		for(var/obj/item/grown/log/tree/log in target_turf)
-			if(log.type != /obj/item/grown/log/tree)
-				continue
+		for(var/obj/item/grown/log/tree/log in target_long_logs)
 			if(!log.bless_log())
 				continue
 			blessed_logs++
@@ -216,6 +222,9 @@
 	else
 		target_soil = locate(/obj/structure/soil) in target_turf
 	if(target_soil)
+		if(target_soil.blessed_time > 0 && !blessed_seed_powder)
+			to_chat(user, span_warning("That soil is already blessed. It can be blessed again in [DisplayTimeText(target_soil.blessed_time)]."))
+			return FALSE
 		if(blessed_seed_powder)
 			var/amount_blessed = 0
 			for(var/obj/structure/soil/soil in range(4, user))
@@ -230,7 +239,7 @@
 				return FALSE
 			qdel(blessed_seed_powder)
 			spend_all_bless_charges()
-			visible_message(span_green("[usr] scatters blessed seed powder and Dendor's favor washes over nearby crops!"))
+			visible_message(span_green("[usr] scatters blessed seed powder and Dendor's favor refreshes nearby crops!"))
 			return TRUE
 		target_soil.bless_soil()
 		visible_message(span_green("[usr] blesses [target_soil] with Dendor's favor!"))
@@ -319,9 +328,9 @@
 		revert_cast()
 		return FALSE
 
-	// Spawn as a vertical north-south line centered on the tile in front of the caster.
+	// Spawn a 3x1 line across the tile in front of the caster.
 	var/turf/center_turf = get_step(user, user.dir)
-	var/list/spawn_turfs = list(get_step(center_turf, NORTH), center_turf, get_step(center_turf, SOUTH))
+	var/list/spawn_turfs = list(get_step(center_turf, turn(user.dir, 90)), center_turf, get_step(center_turf, turn(user.dir, -90)))
 	for(var/turf/spawn_turf as anything in spawn_turfs)
 		if(!istype(spawn_turf))
 			continue

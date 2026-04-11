@@ -153,7 +153,7 @@ GLOBAL_LIST_EMPTY(soil_list)
 /obj/structure/soil/proc/try_handle_watering(obj/item/attacking_item, mob/user, params)
 	var/water_amount = 0
 	if(istype(attacking_item, /obj/item/reagent_containers))
-		var/target_water = (MAX_PLANT_WATER * 0.8) - water
+		var/target_water = MAX_PLANT_WATER - water
 		if(target_water <= 0)
 			to_chat(user, span_warning("The soil is already wet!"))
 			return TRUE
@@ -315,7 +315,7 @@ GLOBAL_LIST_EMPTY(soil_list)
 	update_icon()
 
 /obj/structure/soil/proc/bless_soil()
-	blessed_time = 15 MINUTES
+	blessed_time = 10 MINUTES
 	// It's a miracle! Plant comes back to life when blessed by Dendor
 	if(plant && plant_dead)
 		plant_dead = FALSE
@@ -440,16 +440,22 @@ GLOBAL_LIST_EMPTY(soil_list)
 
 /obj/structure/soil/examine(mob/user)
 	. = ..()
+	var/farming_skill = 0
+	if(isliving(user))
+		var/mob/living/living_user = user
+		farming_skill = living_user.get_skill_level(/datum/skill/labor/farming)
 	// Plant description
 	if(plant)
 		. += span_info("\The [plant.name] is growing here...")
 		// Plant health feedback
-		if(plant_dead == TRUE)
-			. += span_warning("It's dead!")
-		else if(plant_health <=  MAX_PLANT_HEALTH * 0.3)
-			. += span_warning("It's dying!")
-		else if (plant_health <=  MAX_PLANT_HEALTH * 0.6)
-			. += span_warning("It's brown and unhealthy...")
+		if(farming_skill >= SKILL_LEVEL_JOURNEYMAN)
+			. += span_info("Crop health: [round((plant_health / MAX_PLANT_HEALTH) * 100)]%")
+			if(plant_dead == TRUE)
+				. += span_warning("It's dead!")
+			else if(plant_health <=  MAX_PLANT_HEALTH * 0.3)
+				. += span_warning("It's dying!")
+			else if (plant_health <=  MAX_PLANT_HEALTH * 0.6)
+				. += span_warning("It's brown and unhealthy...")
 		// Plant maturation and produce feedback
 		if(matured)
 			. += span_info("It's fully matured.")
@@ -457,20 +463,24 @@ GLOBAL_LIST_EMPTY(soil_list)
 			. += span_info("It has yet to mature.")
 		if(produce_ready)
 			. += span_info("It's ready for harvest.")
-	// Water feedback
-	if(water <= MAX_PLANT_WATER * 0.15)
-		. += span_warning("The soil is thirsty.")
-	else if (water <= MAX_PLANT_WATER * 0.5)
-		. += span_info("The soil is moist.")
+	if(farming_skill >= SKILL_LEVEL_APPRENTICE)
+		. += span_info("Water: [round((water / MAX_PLANT_WATER) * 100)]%")
+		. += span_info("Nutrition: [round((nutrition / MAX_PLANT_NUTRITION) * 100)]%")
 	else
-		. += span_info("The soil is wet.")
-	// Nutrition feedback
-	if(nutrition <= MAX_PLANT_NUTRITION * 0.15)
-		. += span_warning("The soil is hungry.")
-	else if (nutrition <= MAX_PLANT_NUTRITION * 0.5)
-		. += span_info("The soil is sated.")
-	else
-		. += span_info("The soil looks fertile.")
+		// Water feedback
+		if(water <= MAX_PLANT_WATER * 0.15)
+			. += span_warning("The soil is thirsty.")
+		else if (water <= MAX_PLANT_WATER * 0.5)
+			. += span_info("The soil is moist.")
+		else
+			. += span_info("The soil is wet.")
+		// Nutrition feedback
+		if(nutrition <= MAX_PLANT_NUTRITION * 0.15)
+			. += span_warning("The soil is hungry.")
+		else if (nutrition <= MAX_PLANT_NUTRITION * 0.5)
+			. += span_info("The soil is sated.")
+		else
+			. += span_info("The soil looks fertile.")
 	// Weeds feedback
 	if(weeds >= MAX_PLANT_WEEDS * 0.6)
 		. += span_warning("It's overtaken by the weeds!")
@@ -565,8 +575,11 @@ GLOBAL_LIST_EMPTY(soil_list)
 	// If soil is tilled, grow faster
 	if(tilled_time > 0)
 		growth_multiplier *= 1.6
-	// If soil is blessed or fertilized, grow faster and take up less nutriments
-	if(blessed_time > 0 || fertilized_time > 0)
+	// Blessed soil gives a modest growth boost; fertilizer remains stronger.
+	if(blessed_time > 0)
+		growth_multiplier *= 1.2
+		nutriment_eat_mutliplier *= 0.8
+	if(fertilized_time > 0)
 		growth_multiplier *= 2.0
 		nutriment_eat_mutliplier *= 0.4
 

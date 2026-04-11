@@ -45,8 +45,9 @@
 	var/stage3_state = "t12"
 	var/dead_icon    = 'icons/roguetown/misc/crops.dmi'
 	var/dead_state   = "lemon3"
-	// pixel_x applied when becoming a young tree
+	// pixel offsets applied when becoming a young tree
 	var/stage3_pixel_x = -16
+	var/stage3_pixel_y = 0
 
 /obj/structure/tree_sapling/Initialize(mapload)
 	. = ..()
@@ -110,10 +111,13 @@
 			density = TRUE
 			opacity = TRUE
 			pixel_x = stage3_pixel_x
+			pixel_y = stage3_pixel_y
 		if(4)
 			spawn_final_tree()
 
 /obj/structure/tree_sapling/proc/spawn_final_tree()
+	for(var/obj/structure/soil/S in get_turf(src))
+		qdel(S)
 	var/atom/movable/final_tree = new tree_final_type(get_turf(src))
 	if(final_tree)
 		final_tree.pixel_x = pixel_x
@@ -192,5 +196,6 @@
 	icon_state = "palebush_1"
 	stage2_state = "pinkbush"
 	stage3_state = "t10"
+	stage3_pixel_y = -4
 	dead_state = "apple3"
 	tree_final_type = /obj/structure/flora/sakura

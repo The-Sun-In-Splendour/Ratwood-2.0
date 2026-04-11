@@ -43,6 +43,12 @@
 	valid_outputs = list( /obj/item/alch/bonemeal = 2)
 	bonus_chance_outputs = list(/obj/item/alch/bonemeal = 50)
 
+/datum/alch_grind_recipe/natural_bone
+	name = "Natural Bone"
+	valid_input = /obj/item/natural/bone
+	valid_outputs = list(/obj/item/alch/bonemeal = 2)
+	bonus_chance_outputs = list(/obj/item/alch/bonemeal = 50)
+
 /datum/alch_grind_recipe/horn
 
 	valid_input = /obj/item/alch/horn

@@ -168,6 +168,23 @@
 	SEND_SOUND(usr, sound(null))
 	playsound(user, 'sound/music/tree.ogg', 80)
 
+/obj/structure/flora/roguetree/wise/proc/notify_nearby_dendorites()
+	for(var/mob/living/carbon/human/H in GLOB.alive_mob_list)
+		if(H.patron?.type != /datum/patron/divine/dendor)
+			continue
+		if(H.z != z)
+			continue
+		if(get_dist(H, src) > 20)
+			continue
+		H.add_stress(/datum/stressevent/treefather_loss)
+		var/tree_dir = dir2text(get_dir(H, src))
+		to_chat(H, span_boldwarning("A sacred tree has fallen to my [tree_dir]! The Treefather recoils in pain."))
+		playsound(H, 'sound/music/tree.ogg', 35, FALSE)
+
+/obj/structure/flora/roguetree/wise/obj_destruction(damage_flag)
+	notify_nearby_dendorites()
+	return ..()
+
 /obj/structure/flora/roguetree/burnt
 	name = "burnt tree"
 	desc = "Maybe lightning, maybe war, took the life of this once lively tree."
