@@ -182,14 +182,9 @@ GLOBAL_LIST_EMPTY(priest_swap_timers)
 		return
 	REMOVE_TRAIT(H, TRAIT_CLERGYRADICAL, "job")
 	H.verbs -= /mob/living/carbon/human/proc/change_patron
-	if(!H.devotion)
-		var/datum/devotion/C = new /datum/devotion(H, H.patron)
-		C.grant_miracles(H, cleric_tier = CLERIC_T4, passive_gain = CLERIC_REGEN_MAJOR, start_maxed = TRUE)
-	if(H.devotion)
-		H.devotion._grant_all_patron_miracles_direct(H)
+	H.reset_clergy_devotion(CLERIC_T4, CLERIC_REGEN_MAJOR, TRUE, CLERIC_REQ_4)
 	_pick_loyalist_miracles(H)
 	to_chat(H, span_notice("I remain on the old path of devotion."))
-
 
 /datum/job/roguetown/priest/proc/grant_radical_path(mob/living/carbon/human/H)
 	if(!H || !H.mind || !H.patron)
@@ -197,11 +192,7 @@ GLOBAL_LIST_EMPTY(priest_swap_timers)
 	ADD_TRAIT(H, TRAIT_CLERGYRADICAL, "job")
 	H.church_favor += 2500
 	H.verbs |= /mob/living/carbon/human/proc/change_patron
-	var/miracle_menu_path = text2path("/obj/effect/proc_holder/spell/self/learnmiracle")
-	if(miracle_menu_path && !H.mind.has_spell(miracle_menu_path))
-		var/obj/effect/proc_holder/spell/S = new miracle_menu_path
-		if(S)
-			H.mind.AddSpell(S, H)
+	H.reset_clergy_devotion(CLERIC_T4, CLERIC_REGEN_MAJOR, TRUE, CLERIC_REQ_4)
 	if(!H.mind.has_spell(/obj/effect/proc_holder/spell/invoked/convert_heretic_priest))
 		H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/convert_heretic_priest, H)
 	if(!H.mind.has_spell(/obj/effect/proc_holder/spell/invoked/cure_rot))
@@ -216,7 +207,6 @@ GLOBAL_LIST_EMPTY(priest_swap_timers)
 		H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/wound_heal, H)
 	if(!H.mind.has_spell(/obj/effect/proc_holder/spell/invoked/takeapprentice))
 		H.mind.AddSpell(new /obj/effect/proc_holder/spell/invoked/takeapprentice, H)
-
 	to_chat(H, span_notice("I embrace the radical path."))
 
 /datum/job/priest/vice //just used to change the priest title

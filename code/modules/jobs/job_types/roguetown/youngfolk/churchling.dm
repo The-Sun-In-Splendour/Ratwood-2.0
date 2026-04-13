@@ -92,32 +92,15 @@
 /datum/job/roguetown/churchling/proc/grant_old_path(mob/living/carbon/human/H)
 	if(!H || !H.mind || !H.patron)
 		return
-
-	if(!H.devotion)
-		var/datum/devotion/C = new /datum/devotion(H, H.patron)
-		C.grant_miracles(H, cleric_tier = CLERIC_T1, passive_gain = CLERIC_REGEN_DEVOTEE, devotion_limit = CLERIC_REQ_1)
-
-	if(H.devotion)
-		H.devotion._grant_all_patron_miracles_direct(H, CLERIC_T1)
-
+	REMOVE_TRAIT(H, TRAIT_CLERGYRADICAL, "job")
+	H.reset_clergy_devotion(CLERIC_T1, CLERIC_REGEN_DEVOTEE, FALSE, CLERIC_REQ_1)
 	to_chat(H, span_notice("I remain on the old path of devotion."))
 
 /datum/job/roguetown/churchling/proc/grant_radical_path(mob/living/carbon/human/H)
 	if(!H || !H.mind || !H.patron)
 		return
-
 	ADD_TRAIT(H, TRAIT_CLERGYRADICAL, "job")
 	H.church_favor += 1000
-
-	if(!H.devotion)
-		var/datum/devotion/C = new /datum/devotion(H, H.patron)
-		C.grant_miracles(H, cleric_tier = CLERIC_T1, passive_gain = CLERIC_REGEN_DEVOTEE, devotion_limit = CLERIC_REQ_1)
-
-	var/miracle_menu_path = text2path("/obj/effect/proc_holder/spell/self/learnmiracle")
-	if(miracle_menu_path && !H.mind.has_spell(miracle_menu_path))
-		var/obj/effect/proc_holder/spell/S = new miracle_menu_path
-		if(S)
-			H.mind.AddSpell(S, H)
-
+	H.reset_clergy_devotion(CLERIC_T1, CLERIC_REGEN_DEVOTEE, FALSE, CLERIC_REQ_1)
 	to_chat(H, span_notice("I embrace the radical path."))
 

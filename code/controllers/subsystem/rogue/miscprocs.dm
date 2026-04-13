@@ -266,6 +266,31 @@
 	to_chat(src, "<font color='purple'>I gained [prayersesh] devotion!</font>")
 	return TRUE
 
+/mob/living/carbon/human/proc/reset_clergy_devotion(cleric_tier, passive_gain, start_maxed = FALSE, devotion_limit = CLERIC_REQ_4)
+	if(!mind || !patron)
+		return FALSE
+	var/datum/devotion/D = devotion
+	if(D)
+		if(length(D.granted_spells))
+			for(var/obj/effect/proc_holder/spell/S in D.granted_spells)
+				mind.RemoveSpell(S)
+		STOP_PROCESSING(SSobj, D)
+		D.patron = patron
+		D.devotion = 0
+		D.max_devotion = CLERIC_REQ_1
+		D.progression = 0
+		D.max_progression = CLERIC_REQ_4
+		D.level = CLERIC_T0
+		D.last_level = null
+		D.passive_devotion_gain = 0
+		D.passive_progression_gain = 0
+		D.granted_spells = null
+		D.suppress_grants = FALSE
+	else
+		D = new /datum/devotion(src, patron)
+	D.grant_miracles(src, cleric_tier = cleric_tier, passive_gain = passive_gain, devotion_limit = devotion_limit, start_maxed = start_maxed)
+	return TRUE
+
 /mob/living/carbon/human/proc/changevoice()
 	set name = "Change Second Voice (Can only use Once!)"
 	set category = "Memory"
