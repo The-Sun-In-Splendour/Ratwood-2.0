@@ -569,7 +569,7 @@
 			ADD_TRAIT(H, TRAIT_DODGEEXPERT, TRAIT_GENERIC)
 			H.set_blindness(0)
 			H.change_stat("speed", 3)
-			H.change_stat("endurance", 1)
+			H.change_stat("willpower", 1)
 			H.change_stat("strength", 1)
 			armor = /obj/item/clothing/suit/roguetown/armor/leather/bikini
 			pants = /obj/item/clothing/under/roguetown/heavy_leather_pants/shorts
@@ -622,7 +622,7 @@
 			ADD_TRAIT(H, TRAIT_DODGEEXPERT, TRAIT_GENERIC)
 			H.set_blindness(0)
 			H.change_stat("speed", 3)
-			H.change_stat("endurance", 1)
+			H.change_stat("willpower", 1)
 			H.change_stat("strength", 1)
 			armor = /obj/item/clothing/suit/roguetown/armor/leather/hide/bikini
 			pants = /obj/item/clothing/under/roguetown/heavy_leather_pants/shorts
@@ -674,7 +674,7 @@
 			ADD_TRAIT(H, TRAIT_DODGEEXPERT, TRAIT_GENERIC)
 			H.set_blindness(0)
 			H.change_stat("speed", 2)
-			H.change_stat("endurance", 1)
+			H.change_stat("willpower", 1)
 			H.change_stat("strength", 2)
 			armor = /obj/item/clothing/suit/roguetown/armor/leather/studded/bikini
 			pants = /obj/item/clothing/under/roguetown/tights/black
@@ -723,7 +723,7 @@
 			ADD_TRAIT(H, TRAIT_NOPAIN, TRAIT_GENERIC)
 			H.set_blindness(0)
 			H.change_stat("strength", 2)
-			H.change_stat("endurance", 2)
+			H.change_stat("willpower", 2)
 			H.change_stat("constitution", 1)
 			armor = /obj/item/clothing/suit/roguetown/armor/plate/bikini
 			pants = /obj/item/clothing/under/roguetown/trou/leather
