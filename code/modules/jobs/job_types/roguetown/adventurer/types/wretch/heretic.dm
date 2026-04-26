@@ -177,7 +177,7 @@
 		if(/datum/patron/old_god)
 			H.change_stat(STATKEY_WIL, 2) //ENDVRE. You give up useful miracles, rites and miracle-healing from other Heretics, so you'll need this.
 			var/heavypsyfashion = list("Traditionalist", "Orthodoxist", "Reformist") //Only outfits differ.
-			var/heavypsyfashion_choice = input(H, "What is your faith in HIM like?", "HE LIVES, HE ENDURES, HE DIES") as anything in heavypsyfashion
+			var/heavypsyfashion_choice = input(H, "What is your faith in HIM like?", "HE LYVES, HE ENDURES, HE DIES") as anything in heavypsyfashion
 			switch(heavypsyfashion_choice)
 				if("Traditionalist") //You look like any other Heretic.
 					to_chat(H, span_warning("PSYDON LIVES, but HE sacrificed HIMSELF for us. We do not hear HIM, nor does HE hear us, but all roads lead to HIM, and back to us. One day, PSYDON will return and Creation will be at peace again, turning it into true PARADYSE. The Orthodoxy and the Holy See have twisted the scriptures, the tales. The Ten wish to turn the world to their own image, unwilling to help wake our LORD. Meanwhile, the Orthodoxists lie in His name, straying from the path of peace and filling the world with pain that HE, through all of Creation, feels, delaying HIS awakening. "))
