@@ -200,10 +200,12 @@
 /datum/anvil_recipe/armor/aalloy/chaingaunts
 	name = "Chain Gauntlets, Decrepit"
 	created_item = /obj/item/clothing/gloves/roguetown/chain/aalloy
+	createditem_num = 2
 
 /datum/anvil_recipe/armor/paalloy/chaingaunts
 	name = "Chain Gauntlets, Ancient"
 	created_item = /obj/item/clothing/gloves/roguetown/chain/paalloy
+	createditem_num = 2
 
 /datum/anvil_recipe/armor/aalloy/plategaunts
 	name = "Plate Gauntlets, Decrepit"
@@ -287,6 +289,7 @@
 /datum/anvil_recipe/armor/iron/chainglove
 	name = "Chain Gauntlets, Iron"
 	created_item = /obj/item/clothing/gloves/roguetown/chain/iron
+	createditem_num = 2
 
 /datum/anvil_recipe/armor/iron/plategauntlets
 	name = "Plate Gauntlets, Iron"
