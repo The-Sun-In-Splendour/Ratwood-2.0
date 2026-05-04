@@ -18,9 +18,7 @@
 	// 			/mob/living/simple_animal/hostile/retaliate/rogue/direbear = 5,
 	// 			/mob/living/simple_animal/hostile/retaliate/rogue/minotaur = 5)
 	converted_type = /area/rogue/outdoors/caves
-
-/area/rogue/under/cave/sunkenchurch
-
+	deathsight_message = "A dwelling deep below, a dark recess beyond and beneath."
 
 /area/rogue/under/dungeon/sunkenchurch
 	name = "Sunken Church"
