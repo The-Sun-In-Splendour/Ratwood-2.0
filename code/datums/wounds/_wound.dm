@@ -242,6 +242,7 @@ GLOBAL_LIST_INIT(primordial_wounds, init_primordial_wounds())
 		werewolf_infection_timer = null
 		werewolf_infect_attempt()
 	if(mortal && HAS_TRAIT(affected, TRAIT_CRITICAL_WEAKNESS))
+		affected.emote("deathgurgle", forced = TRUE)
 		affected.death()
 	if(affected.hud_used?.zone_select)
 		affected.hud_used.zone_select.update_icon()
