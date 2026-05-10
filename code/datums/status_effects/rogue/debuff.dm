@@ -1095,6 +1095,7 @@
 	alert_type = /atom/movable/screen/alert/status_effect/debuff/overheat
 	duration = 10 SECONDS
 	effectedstats = list(STATKEY_SPD = 2, STATKEY_WIL = -4)
+
 /datum/status_effect/debuff/overheat/on_apply()
 	. = ..()
 	var/mob/living/carbon/C = owner
@@ -1115,26 +1116,10 @@
 	alert_type = /atom/movable/screen/alert/status_effect/debuff/kiss_ecstasy
 	effectedstats = list(STATKEY_CON = -2, STATKEY_INT = -2, STATKEY_WIL = -2)
 	duration = 30 SECONDS
-	var/ecstasy_tint = "#780014"
 
 /atom/movable/screen/alert/status_effect/debuff/kiss_ecstasy
 	name = "The Kiss"
 	desc = "A terrible sweetness floods my senses."
 	icon_state = "vampirebite"
-
-/datum/status_effect/debuff/kiss_ecstasy/on_apply()
-	. = ..()
-
-	var/mob/living/target = owner
-	if(!target)
-		return
-
-	to_chat(target, span_warning("I cannot resist the terrible pleasure spreading through me..."))
-	target.add_atom_colour(ecstasy_tint, TEMPORARY_COLOUR_PRIORITY)
-
-/datum/status_effect/debuff/kiss_ecstasy/on_remove()
-	var/mob/living/target = owner
-	if(target)
-		target.remove_atom_colour(TEMPORARY_COLOUR_PRIORITY, ecstasy_tint)
 
 	return ..()
