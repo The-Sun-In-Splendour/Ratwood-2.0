@@ -861,3 +861,11 @@
 /obj/item/rogueweapon/spear/keep_standard/Destroy()
 	GLOB.lordcolor -= src
 	return ..()
+
+/obj/item/rogueweapon/woodstaff/standard/zstandard
+	name = "ancient standard"
+	desc = "Her legion's banner, it was a common sight eons past, but its symbol is still a surefire way to strike fear into the ignorant's hearts. \
+	Rally the troops, and invigorate them in undeath as you once did in lyfe. In Her name. \
+	Placeholder description. Placeholder sprite. Don't forget about me."
+	icon = 'icons/roguetown/weapons/polearms64.dmi'
+	icon_state = "standard_z"

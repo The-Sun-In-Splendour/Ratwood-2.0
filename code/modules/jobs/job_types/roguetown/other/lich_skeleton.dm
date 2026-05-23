@@ -217,6 +217,44 @@ LICH SKELETONS
 
 	H.energy = H.max_energy
 
+// Standardbearer. Bad in combat but offers buffs and debuffs. Valuable.
+/datum/advclass/greater_skeleton/lich/signifer
+	name = "Ancient Signifer"
+	tutorial = "Your banner has fallen countless times, but it is sure to rise again another day."
+	outfit = /datum/outfit/job/roguetown/greater_skeleton/lich/signifer
+
+	category_tags = list(CTAG_LSKELETON)
+
+/datum/outfit/job/roguetown/greater_skeleton/lich/signifer/pre_equip(mob/living/carbon/human/H)
+	..()
+
+	H.STASTR = 8
+	H.STASPD = 14
+	H.STACON = 9
+	H.STAINT = 5
+	H.STAPER = 10
+
+	ADD_TRAIT(H, TRAIT_STANDARD_BEARER_EVIL, TRAIT_GENERIC)
+
+	H.adjust_skillrank(/datum/skill/combat/knives, 3, TRUE)
+	H.adjust_skillrank(/datum/skill/misc/athletics, 4, TRUE)
+
+	H.adjust_skillrank(/datum/skill/craft/carpentry, 2, TRUE)
+	H.adjust_skillrank(/datum/skill/craft/masonry, 2, TRUE)
+	H.adjust_skillrank(/datum/skill/craft/crafting, 2, TRUE)
+	H.adjust_skillrank(/datum/skill/craft/sewing, 2, TRUE)
+
+	head = /obj/item/clothing/head/roguetown/helmet/heavy/paalloy
+	shirt = /obj/item/clothing/suit/roguetown/armor/chainmail/paalloy
+	pants = /obj/item/clothing/under/roguetown/chainlegs/kilt/paalloy
+	armor = /obj/item/clothing/suit/roguetown/armor/leather/studded
+	neck = /obj/item/clothing/neck/roguetown/chaincoif/paalloy
+	shoes = /obj/item/clothing/shoes/roguetown/sandals/aalloy
+	gloves = /obj/item/clothing/gloves/roguetown/chain/paalloy
+	r_hand = /obj/item/rogueweapon/spear/keep_standard/zstandard
+
+	H.energy = H.max_energy
+
 // non-Combat crafter goon. Worse weapons + armor but does base-building. Fortnite.
 /datum/advclass/greater_skeleton/lich/sapper
 	name = "Broken-Bone Sapper"
