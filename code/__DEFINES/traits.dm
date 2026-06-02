@@ -102,6 +102,7 @@
 #define TRAIT_SCALEARMOR "Weathered Scales"//Mage armor, refluffed to scales.
 #define TRAIT_HEMOPHAGE "Hemophage"//You can drink blood for heals, but normal food and water makes you ill. Shitty vampire.
 #define TRAIT_BAOTHA_FERTILITY_BOON "Marked and shaped by Baotha" //Able to be impregnated, has permanent womb tattoo and stronger version of nympho vice
+#define TRAIT_CABALIST "Cabalist" // cabalist antagonist. DO NOT GIVE THIS TO NON CABALISTS.
 // chastity traits are defined in chastity_core.dm since they're pretty specific and it's easier to keep them there, but here are the trait defines for them:
 #define TRAIT_CHASTITY_FULL "Chastity Belt" //Prevents most penetrative sexual activity. Given by chastity belt.
 #define TRAIT_CHASTITY_CAGE "Chastity Cage" //Prevents most penis action sexual activity. Given by chastity cage.
@@ -550,7 +551,8 @@ GLOBAL_LIST_INIT(roguetraits, list(
 	TRAIT_NATURALARMOR = span_info("Whether by natural or other means, my skin is strong enough to resist being pierced and cut."),
 	TRAIT_CLERGYRADICAL = span_info("I follow the radical path of the clergy, abandoning the old road of devotion in favor of self-guided miracle study."),
 	TRAIT_TRIBAL = span_info("I belong to the Island's tribe."),
-	TRAIT_COMPLIANT = span_info("No matter how hard I try, I can't put up a fight against others.")
+	TRAIT_COMPLIANT = span_info("No matter how hard I try, I can't put up a fight against others."),
+	TRAIT_CABALIST = span_info("I have been inducted into the local cabal. Her Great Work shall be completed.")
 ))
 
 // trait accessor defines

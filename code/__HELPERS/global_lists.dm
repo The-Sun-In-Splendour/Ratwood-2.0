@@ -99,7 +99,6 @@
 		var/datum/charflaw/charflaw = new path()
 		GLOB.charflaw_singletons[path] = charflaw
 
-
 //creates every subtype of prototype (excluding prototype) and adds it to list L.
 //if no list/L is provided, one is created.
 /proc/init_subtypes(prototype, list/L)
